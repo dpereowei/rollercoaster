@@ -4,8 +4,9 @@ from typing import List
 from datetime import datetime
 from .. import models
 from ..database import get_db
+from ..security import verify_api_key
 
-router = APIRouter(prefix="/environments", tags=["environments"])
+router = APIRouter(prefix="/environments", tags=["environments"], dependencies=[Depends(verify_api_key)])
 
 @router.post("/create", response_model=dict)
 def create_environment(name: str, config: dict, db: Session = Depends(get_db)):
