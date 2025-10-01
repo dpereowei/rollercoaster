@@ -1,16 +1,39 @@
 from fastapi import FastAPI, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from . import crud, schemas, database, env_manager
-import asyncio
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+from . import models
+from .database import engine, SessionLocal, Base
+from .routers import environment
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="RollerCoaster Environment Manager")
+app.include_router(environment.router)
 
-@app.post("/environments/", response_model=schemas.EnvironmentOut)
-async def create_environment(env: schemas.EnvironmentCreate, db: AsyncSession = Depends(database.get_db)):
-    db_env = await crud.create_environment(db, env)
-    asyncio.create_task(env_manager.provision_environment(db_env.name))
-    return db_env
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@app.get("/environments/", response_model=list[schemas.EnvironmentOut])
-async def list_environments(db: AsyncSession = Depends(database.get_db)):
-    return await crud.get_active_environments(db)
+@app.get("/")
+def root():
+    """
+    Purpose: Default get endpoint
+    """
+    return {"message": "RollerCoaster backend is upppp!"}
+# end def
+
+@app.get("/health")
+def health(db: Session = Depends(get_db)):
+    """
+    Purpose: Healthcheck
+    """
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+    
+# end def
