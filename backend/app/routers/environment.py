@@ -1,28 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 from .. import models
 from ..database import get_db
 from ..security import verify_api_key
+from ..services.provisioner import simulate_provision
 
 router = APIRouter(prefix="/environments", tags=["environments"], dependencies=[Depends(verify_api_key)])
 
 @router.post("/create", response_model=dict)
-def create_environment(name: str, config: dict, db: Session = Depends(get_db)):
+def create_environment(name: str, background_tasks: BackgroundTasks, config: dict, db: Session = Depends(get_db)):
     """
     Purpose: Creates a new environment with the provided JSON config
     """
     env = models.Environment(
         name=name,
-        status="running",
+        status="pending",
         created_at=datetime.utcnow(),
         config=config
     )
     db.add(env)
     db.commit()
     db.refresh(env)
-    return {"id": env.id, "status": env.status, "name": env.name}
+
+    background_tasks.add_task(simulate_provision, env.id, db)
+    
+    return {"message": f"Environment {env.name} provisioning started", "status": env.status}
 # end def
 
 @router.get("/list", response_model=List[dict])
