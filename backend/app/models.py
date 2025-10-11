@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -17,7 +17,10 @@ class Environment(Base):
     name = Column(String, unique=True, index=True)
     status = Column(String, default="provisioning")
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     config = Column(JSON)
+    error_message = Column(Text, default="no-errors")
+    tf_output = Column(Text, nullable=True)
 
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="environments")
