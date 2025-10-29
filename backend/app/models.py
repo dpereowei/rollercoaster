@@ -2,6 +2,15 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
+from enum import Enum
+
+class EnvironmentStatus(str, Enum):
+    PENDING = "pending"
+    PROVISIONING = "provisioning"
+    ACTIVE = "active"
+    TERMINATING = "terminating"
+    TERMINATED = "terminated"
+    FAILED = "failed"
 
 class User(Base):
     __tablename__ = "users"
@@ -21,6 +30,10 @@ class Environment(Base):
     config = Column(JSON)
     error_message = Column(Text, default="no-errors")
     tf_output = Column(Text, nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    ended_at = Column(DateTime, nullable=True)
+    duration = Column(float, nullable=True)
+    last_error = Column(Text, nullable=True)
 
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="environments")
